@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CivPulse AI – Your City's Pulse, Powered by AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5n/N0ZDvEg=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    :root {
+      --primary: #3b82f6;
+      --secondary: #10b981;
+      --accent: #8b5cf6;
+      --glow: rgba(59,130,246,0.6);
+    }
+    body.dark {
+      background-color: #0f172a;
+      color: #e2e8f0;
+    }
+    .glass { 
+      background: rgba(255,255,255,0.08); 
+      backdrop-filter: blur(20px); 
+      border: 1px solid rgba(255,255,255,0.12); 
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2); 
+    }
+    body.dark .glass { background: rgba(30,41,59,0.5); border-color: rgba(255,255,255,0.08); }
+
+    .hero-blob { 
+      position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.3; animation: float 20s infinite ease-in-out; 
+    }
+    @keyframes float { 0%,100% { transform: translate(0,0); } 50% { transform: translate(100px,80px); } }
+
+    .btn-glow { background: linear-gradient(90deg, var(--primary), var(--secondary)); box-shadow: 0 0 20px var(--glow); }
+
+    /* IMPROVED MAP STYLES - FULL VIEWPORT HEIGHT + FORCED REFRESH */
+    #map-container {
+      position: relative;
+      height: 60vh;                 /* Use vh for full visible height - prevents collapse */
+      min-height: 400px;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: #e5e7eb;          /* Light fallback */
+    }
+    body.dark #map-container {
+      background: #1e293b;          /* Dark fallback */
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    #map-loading {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.8s ease;
+    }
+    body.dark #map-loading {
+      background: rgba(15,23,42,0.9);
+    }
+    #recenter-btn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 999;
+      background: white;
+      padding: 10px 16px;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      cursor: pointer;
+      font-weight: bold;
+    }
+    body.dark #recenter-btn {
+      background: #1e293b;
+      color: white;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-950 dark:to-slate-900 transition-colors">
+
+  <!-- Navbar -->
+  <nav class="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-md border-b border-slate-200/50 dark:border-slate-700/50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-heart-pulse text-4xl text-blue-600 dark:text-blue-400 animate-pulse"></i>
+        <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-emerald-500">CivPulse AI</span>
+      </div>
+      <button id="themeToggle" class="p-3 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+        <i class="fa-solid fa-moon text-xl dark:hidden"></i>
+        <i class="fa-solid fa-sun text-xl hidden dark:inline"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="pt-32 pb-24 relative overflow-hidden text-center text-white bg-gradient-to-r from-blue-600 to-emerald-600">
+    <div class="absolute inset-0">
+      <div class="hero-blob w-96 h-96 bg-blue-400 top-10 left-20"></div>
+      <div class="hero-blob w-80 h-80 bg-emerald-400 bottom-10 right-20" style="animation-delay: 10s;"></div>
+    </div>
+    <div class="relative z-10 max-w-5xl mx-auto px-6">
+      <h1 class="text-5xl md:text-7xl font-extrabold mb-6 leading-tight">Your City's Pulse,<br/><span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-emerald-200">Powered by AI</span></h1>
+      <p class="text-xl md:text-2xl mb-10 max-w-3xl mx-auto">Report issues instantly. Get AI insights. Track real-time progress for Borsad & beyond.</p>
+      <a href="#report" class="inline-block px-10 py-5 text-xl font-bold rounded-full btn-glow text-white transform hover:scale-105 transition-all shadow-2xl">Report Now →</a>
+    </div>
+  </section>
+
+  <!-- Report Form -->
+  <section id="report" class="py-20 max-w-5xl mx-auto px-6">
+    <h2 class="text-4xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">Report a Civic Issue</h2>
+    <form id="reportForm" class="glass p-10 rounded-3xl shadow-2xl">
+      <div class="grid md:grid-cols-2 gap-8 mb-8">
+        <div>
+          <label class="block text-lg font-semibold mb-3">Category *</label>
+          <select id="category" required class="w-full p-4 bg-white/10 dark:bg-slate-800/40 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-4 focus:ring-blue-500">
+            <option value="">Select...</option>
+            <option>Pothole/Road Damage</option>
+            <option>Garbage/Waste</option>
+            <option>Street Light Out</option>
+            <option>Water Logging</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-lg font-semibold mb-3">AI Suggestion</label>
+          <p id="aiSuggestion" class="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-xl italic text-slate-600 dark:text-slate-400">Describe to get AI help...</p>
+        </div>
+      </div>
+      <div class="mb-8">
+        <label class="block text-lg font-semibold mb-3">Description *</label>
+        <textarea id="description" rows="5" required placeholder="Details, location hints, urgency..." class="w-full p-4 bg-white/10 dark:bg-slate-800/40 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-4 focus:ring-blue-500"></textarea>
+      </div>
+      <div class="mb-8">
+        <label class="block text-lg font-semibold mb-3">Location (Click anywhere on the full map to place pin)</label>
+        <div id="map-container">
+          <div id="map-loading">
+            <div class="text-center">
+              <i class="fa-solid fa-spinner fa-spin text-5xl text-blue-500 mb-4"></i>
+              <p class="text-xl font-medium">Loading full Borsad map...</p>
+            </div>
+          </div>
+          <div id="map"></div>
+          <button id="recenter-btn" onclick="recenterMap()">Recenter on Borsad</button>
+        </div>
+        <input type="hidden" id="lat" value="22.41">
+        <input type="hidden" id="lng" value="72.90">
+      </div>
+      <div class="mb-8">
+        <label class="block text-lg font-semibold mb-3">Photo (optional - AI analyzes!)</label>
+        <input type="file" id="photo" accept="image/*" class="w-full p-4 bg-white/10 dark:bg-slate-800/40 border border-slate-300 dark:border-slate-600 rounded-xl"/>
+        <p id="aiAnalysis" class="mt-3 text-sm italic text-slate-600 dark:text-slate-400"></p>
+      </div>
+      <button type="submit" id="submitBtn" class="w-full py-5 text-xl font-bold rounded-full btn-glow text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all flex items-center justify-center gap-3">
+        <span>Submit Report</span>
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </form>
+  </section>
+
+  <!-- Dashboard & Live Issues -->
+  <section class="py-20 max-w-7xl mx-auto px-6 bg-slate-50 dark:bg-slate-900/30">
+    <h2 class="text-4xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-emerald-600">Live Dashboard – Borsad Pulse</h2>
+    <div class="grid md:grid-cols-3 gap-8 mb-12">
+      <div class="glass p-8 rounded-3xl text-center">
+        <h3 class="text-2xl font-bold mb-2">Total Issues</h3>
+        <p id="totalIssues" class="text-5xl font-extrabold text-blue-600">0</p>
+      </div>
+      <div class="glass p-8 rounded-3xl text-center">
+        <h3 class="text-2xl font-bold mb-2">Pending</h3>
+        <p id="pendingIssues" class="text-5xl font-extrabold text-red-500">0</p>
+      </div>
+      <div class="glass p-8 rounded-3xl text-center">
+        <h3 class="text-2xl font-bold mb-2">Resolved</h3>
+        <p id="resolvedIssues" class="text-5xl font-extrabold text-emerald-500">0</p>
+      </div>
+    </div>
+    <div id="issuesList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 text-center bg-gradient-to-t from-slate-900 to-transparent text-slate-400">
+    <p class="text-lg">CivPulse AI – Built for IBM AI Innovation Challenge by Yashaswi from Borsad, Gujarat</p>
+    <p class="mt-2 text-sm">Making cities smarter, one report at a time. © 2025</p>
+  </footer>
+
+  <script>
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.body.classList.add('dark');
+      themeToggle.querySelector('i.fa-moon').classList.add('hidden');
+      themeToggle.querySelector('i.fa-sun').classList.remove('hidden');
+    }
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      localStorage.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+      themeToggle.querySelector('i.fa-moon').classList.toggle('hidden');
+      themeToggle.querySelector('i.fa-sun').classList.toggle('hidden');
+    });
+
+    // Map setup with forced full load
+    const map = L.map('map', {
+      zoomControl: true,
+      attributionControl: true,
+      minZoom: 10,          // Prevent too much zoom out
+      maxZoom: 18
+    }).setView([22.41, 72.90], 14);  // Borsad center, zoom level for full view
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+      detectRetina: true    // Better for high-res screens
+    }).addTo(map);
+
+    const markers = L.markerClusterGroup().addTo(map);
+    let userMarker;
+
+    map.on('click', e => {
+      if (userMarker) markers.removeLayer(userMarker);
+      userMarker = L.marker(e.latlng, {
+        icon: L.divIcon({className: '', html: '<i class="fa-solid fa-location-dot text-4xl text-red-600"></i>', iconSize: [48, 48], iconAnchor: [24, 48]})
+      }).addTo(markers);
+      document.getElementById('lat').value = e.latlng.lat.toFixed(6);
+      document.getElementById('lng').value = e.latlng.lng.toFixed(6);
+      map.setView(e.latlng, 16);
+    });
+
+    // Recenter function for button
+    function recenterMap() {
+      map.setView([22.41, 72.90], 14);
+      map.invalidateSize();
+    }
+
+    // Aggressive invalidateSize on multiple events
+    function forceMapRefresh() {
+      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(() => map.invalidateSize(), 500);
+      setTimeout(() => map.invalidateSize(), 1000);
+      setTimeout(() => map.invalidateSize(), 2000);
+      setTimeout(() => map.invalidateSize(true), 3000);  // With animation
+    }
+
+    // Call on load, resize, section visible, and theme change
+    window.addEventListener('load', forceMapRefresh);
+    window.addEventListener('resize', forceMapRefresh);
+    themeToggle.addEventListener('click', () => setTimeout(forceMapRefresh, 300));  // After dark mode switch
+
+    const reportSection = document.getElementById('report');
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        forceMapRefresh();
+      }
+    }, { threshold: 0.5 });
+    observer.observe(reportSection);
+
+    // Hide loader when map tiles are ready
+    map.whenReady(() => {
+      const loader = document.getElementById('map-loading');
+      loader.style.opacity = '0';
+      setTimeout(() => loader.style.display = 'none', 800);
+    });
+
+    // Mock AI
+    document.getElementById('description').addEventListener('input', e => {
+      const txt = e.target.value.toLowerCase();
+      let cat = '';
+      if (/pothole|road|damage/i.test(txt)) cat = 'Pothole/Road Damage';
+      else if (/garbage|waste|trash/i.test(txt)) cat = 'Garbage/Waste';
+      else if (/light|streetlight/i.test(txt)) cat = 'Street Light Out';
+      else if (/water|flood|logging/i.test(txt)) cat = 'Water Logging';
+      document.getElementById('aiSuggestion').textContent = cat ? `AI suggests: ${cat}` : 'Describe to get AI help...';
+    });
+
+    document.getElementById('photo').addEventListener('change', e => {
+      if (e.target.files[0]) {
+        const analysis = ['Issue detected in photo', 'Possible pothole/garbage', 'AI preview ready'][Math.floor(Math.random()*3)];
+        document.getElementById('aiAnalysis').textContent = analysis;
+      }
+    });
+
+    // Issues data
+    let issues = JSON.parse(localStorage.getItem('civpulse_issues')) || [];
+    function saveIssues() { localStorage.setItem('civpulse_issues', JSON.stringify(issues)); }
+
+    function renderIssues() {
+      const list = document.getElementById('issuesList');
+      list.innerHTML = '';
+      markers.clearLayers();
+
+      issues.forEach(issue => {
+        const statusClass = issue.status === 'Pending' ? 'bg-red-100 text-red-800 dark:bg-red-900/40' : 
+                            issue.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40' : 
+                            'bg-green-100 text-green-800 dark:bg-green-900/40';
+
+        list.innerHTML += `
+          <div class="glass p-6 rounded-3xl hover:shadow-2xl transition-all">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="text-xl font-bold">${issue.category}</h3>
+              <span class="px-4 py-1 rounded-full text-sm font-medium ${statusClass}">${issue.status}</span>
+            </div>
+            <p class="mb-4">${issue.desc}</p>
+            <div class="text-sm opacity-70">Reported: ${new Date(issue.time).toLocaleString()}</div>
+          </div>`;
+
+        const color = issue.status === 'Pending' ? '#ef4444' : issue.status === 'In Progress' ? '#f59e0b' : '#10b981';
+        L.marker([issue.lat, issue.lng], {
+          icon: L.divIcon({
+            html: `<i class="fa-solid fa-location-dot text-4xl" style="color:${color}"></i>`,
+            iconSize: [48, 48],
+            iconAnchor: [24, 48]
+          })
+        }).addTo(markers)
+          .bindPopup(`<b>${issue.category}</b><br>${issue.desc}<br><b>Status:</b> ${issue.status}<br><b>Time:</b> ${new Date(issue.time).toLocaleString()}`);
+      });
+
+      document.getElementById('totalIssues').textContent = issues.length;
+      document.getElementById('pendingIssues').textContent = issues.filter(i => i.status === 'Pending').length;
+      document.getElementById('resolvedIssues').textContent = issues.filter(i => i.status === 'Resolved').length;
+    }
+
+    // Simulate updates
+    setInterval(() => {
+      issues.forEach(issue => {
+        if (issue.status === 'Pending' && Math.random() > 0.7) issue.status = 'In Progress';
+        else if (issue.status === 'In Progress' && Math.random() > 0.8) issue.status = 'Resolved';
+      });
+      saveIssues();
+      renderIssues();
+    }, 30000);
+
+    // Form submit
+    document.getElementById('reportForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        const newIssue = {
+          category: document.getElementById('category').value,
+          desc: document.getElementById('description').value,
+          lat: parseFloat(document.getElementById('lat').value),
+          lng: parseFloat(document.getElementById('lng').value),
+          status: 'Pending',
+          time: Date.now()
+        };
+        issues.unshift(newIssue);
+        saveIssues();
+        renderIssues();
+        confetti({ particleCount: 150, spread: 90 });
+        alert('Report submitted! Pin placed on full map.');
+        e.target.reset();
+        document.getElementById('aiSuggestion').textContent = 'Describe to get AI help...';
+        document.getElementById('aiAnalysis').textContent = '';
+        btn.innerHTML = '<span>Submit Report</span><i class="fa-solid fa-paper-plane"></i>';
+        btn.disabled = false;
+        forceMapRefresh();  // Refresh map after submit
+      }, 1400);
+    });
+
+    renderIssues();
+  </script>
+</body>
+</html>

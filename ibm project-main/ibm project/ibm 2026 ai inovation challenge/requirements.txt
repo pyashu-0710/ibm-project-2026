@@ -1,0 +1,7 @@
+flask
+flask-cors
+supabase
+google-generativeai
+python-dotenv
+langchain
+Pillow

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CivPulse AI – Future City Management</title>
+    <!-- Tailwind -->
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5n/N0ZDvEg=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Leaflet MarkerCluster -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="min-h-screen transition-colors duration-500">
+
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full z-50 glass border-b-0">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <i class="fa-solid fa-bolt text-3xl text-blue-500 animate-pulse"></i>
+                    <div class="absolute inset-0 bg-blue-500 blur-lg opacity-50 animate-pulse"></div>
+                </div>
+                <span
+                    class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                    CivPulse AI
+                </span>
+            </div>
+            <button id="themeToggle" class="p-3 rounded-full hover:bg-white/10 transition glass">
+                <i class="fa-solid fa-moon text-xl dark:hidden text-slate-700"></i>
+                <i class="fa-solid fa-sun text-xl hidden dark:inline text-yellow-300"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="min-h-screen flex items-center justify-center relative overflow-hidden text-center pt-20">
+        <!-- Background Blobs -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div
+                class="hero-blob w-96 h-96 bg-blue-600 top-20 left-10 opacity-30 mix-blend-multiply filter blur-3xl animate-blob">
+            </div>
+            <div
+                class="hero-blob w-96 h-96 bg-purple-600 bottom-20 right-10 opacity-30 mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000">
+            </div>
+            <div
+                class="hero-blob w-80 h-80 bg-emerald-500 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-30 mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000">
+            </div>
+        </div>
+
+        <div class="relative z-10 max-w-4xl mx-auto px-6 animate-fade-in">
+            <div
+                class="inline-block px-4 py-2 mb-6 rounded-full glass text-sm font-semibold tracking-wide text-blue-300 border border-blue-500/30">
+                ✨ AI-POWERED CITY MANAGEMENT
+            </div>
+            <h1 class="text-6xl md:text-8xl font-extrabold mb-8 leading-tight tracking-tight">
+                The Pulse of <br />
+                <span
+                    class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400">
+                    Your City
+                </span>
+            </h1>
+            <p class="text-xl md:text-2xl mb-12 text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
+                Report issues instantly with AI analysis. Visualize real-time data. Connect with your community's
+                progress.
+            </p>
+            <div class="flex flex-col md:flex-row gap-6 justify-center">
+                <a href="#report"
+                    class="btn-glow px-10 py-5 text-lg font-bold rounded-2xl text-white transform hover:scale-105 transition-all flex items-center justify-center gap-3">
+                    <span>Start Reporting</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+                <a href="#dashboard"
+                    class="px-10 py-5 text-lg font-bold rounded-2xl glass hover:bg-white/5 transition-all flex items-center justify-center gap-3 text-slate-300">
+                    <span>View Dashboard</span>
+                    <i class="fa-solid fa-chart-pie"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Report Form_ -->
+    <section id="report" class="py-32 relative">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="text-center mb-16 animate-fade-in">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4">Report an Issue</h2>
+                <p class="text-slate-400 text-lg">Help us fix the city, one report at a time.</p>
+            </div>
+
+            <form id="reportForm" class="glass p-8 md:p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                <!-- Decorative gradient -->
+                <div
+                    class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500">
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-12">
+                    <div class="space-y-8">
+                        <div>
+                            <label
+                                class="block text-sm font-bold uppercase tracking-wider mb-3 text-blue-400">Category</label>
+                            <select id="category" required
+                                class="w-full p-5 rounded-2xl text-lg appearance-none cursor-pointer hover:border-blue-500/50 transition-colors">
+                                <option value="" class="bg-slate-900">Select Issue Type...</option>
+                                <option class="bg-slate-900">Pothole/Road Damage</option>
+                                <option class="bg-slate-900">Garbage/Waste</option>
+                                <option class="bg-slate-900">Street Light Out</option>
+                                <option class="bg-slate-900">Water Logging</option>
+                                <option class="bg-slate-900">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-sm font-bold uppercase tracking-wider mb-3 text-blue-400">Description</label>
+                            <textarea id="description" rows="6" required
+                                placeholder="Describe the issue... (AI will help categorization)"
+                                class="w-full p-5 rounded-2xl text-lg resize-none"></textarea>
+                            <div
+                                class="mt-3 flex items-start gap-3 p-4 rounded-xl glass bg-blue-500/5 border border-blue-500/10">
+                                <i class="fa-solid fa-robot text-blue-400 mt-1"></i>
+                                <p id="aiSuggestion" class="text-sm text-slate-400 italic">Start typing description for
+                                    AI suggestions...</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold uppercase tracking-wider mb-3 text-blue-400">Photo
+                                Proof</label>
+                            <div class="relative group">
+                                <input type="file" id="photo" accept="image/*"
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                <div
+                                    class="w-full p-8 rounded-2xl border-2 border-dashed border-slate-600 group-hover:border-blue-500 transition-colors text-center">
+                                    <i
+                                        class="fa-solid fa-cloud-upload-alt text-4xl mb-3 text-slate-500 group-hover:text-blue-400 transition-colors"></i>
+                                    <p class="text-slate-400 group-hover:text-white transition-colors">Click or Drag
+                                        Photo Here</p>
+                                    <p id="aiAnalysis" class="mt-2 text-xs text-emerald-400 font-mono"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="block text-sm font-bold uppercase tracking-wider mb-3 text-blue-400">Pin
+                            Location</label>
+                        <div id="map-container" class="shadow-inner">
+                            <div id="map-loading">
+                                <div class="text-center">
+                                    <i class="fa-solid fa-compass fa-spin text-5xl text-blue-500 mb-4"></i>
+                                    <p class="text-xl font-medium text-slate-800 dark:text-white">Locating...</p>
+                                </div>
+                            </div>
+                            <div id="map"></div>
+                            <button type="button" id="recenter-btn" onclick="recenterMap()">
+                                <i class="fa-solid fa-crosshairs mr-2"></i> Recenter
+                            </button>
+                        </div>
+                        <p class="text-center text-xs text-slate-500">Tap on map to refine location</p>
+                        <input type="hidden" id="lat" value="22.41">
+                        <input type="hidden" id="lng" value="72.90">
+                    </div>
+                </div>
+
+                <div class="mt-12">
+                    <button type="submit" id="submitBtn"
+                        class="w-full py-6 text-xl font-bold rounded-2xl btn-glow text-white shadow-xl hover:shadow-2xl flex items-center justify-center gap-4">
+                        <span>Submit Report</span>
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="py-32 bg-black/20">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Live
+                    Dashboard</span>
+            </h2>
+
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="glass p-8 rounded-3xl text-center relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fa-solid fa-layer-group text-8xl"></i>
+                    </div>
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Total Issues</h3>
+                    <p id="totalIssues"
+                        class="text-6xl font-black text-white group-hover:scale-110 transition-transform">0</p>
+                </div>
+                <div class="glass p-8 rounded-3xl text-center relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fa-solid fa-clock text-8xl text-yellow-500"></i>
+                    </div>
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Pending</h3>
+                    <p id="pendingIssues"
+                        class="text-6xl font-black text-yellow-400 group-hover:scale-110 transition-transform">0</p>
+                </div>
+                <div class="glass p-8 rounded-3xl text-center relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i class="fa-solid fa-check-circle text-8xl text-emerald-500"></i>
+                    </div>
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Resolved</h3>
+                    <p id="resolvedIssues"
+                        class="text-6xl font-black text-emerald-400 group-hover:scale-110 transition-transform">0</p>
+                </div>
+            </div>
+
+            <div id="issuesList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Dynamic Issues -->
+            </div>
+        </div>
+    </section>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>
